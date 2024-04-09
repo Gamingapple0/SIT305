@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">TaskManager</string>
+    <string name="title_home">Home</string>
+    <string name="title_all_notes">All Notes</string>
+    <string name="title_add_note">Add Note</string>
+</resources>
