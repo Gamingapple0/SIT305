@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav"
+    app:startDestination="@id/home2">
+
+    <fragment
+        android:id="@+id/home2"
+        android:name="com.example.lostandfoundapp.home"
+        android:label="fragment_home"
+        tools:layout="@layout/fragment_home" >
+        <action
+            android:id="@+id/action_home2_to_form"
+            app:destination="@id/form" />
+        <action
+            android:id="@+id/action_home2_to_all_items"
+            app:destination="@id/all_items" />
+    </fragment>
+    <fragment
+        android:id="@+id/form"
+        android:name="com.example.lostandfoundapp.form"
+        android:label="fragment_form"
+        tools:layout="@layout/fragment_form" >
+        <action
+            android:id="@+id/action_form_to_home2"
+            app:destination="@id/home2" />
+        <action
+            android:id="@+id/action_form_to_all_items"
+            app:destination="@id/all_items" />
+    </fragment>
+    <fragment
+        android:id="@+id/all_items"
+        android:name="com.example.lostandfoundapp.all_items"
+        android:label="fragment_all_items"
+        tools:layout="@layout/fragment_all_items" >
+        <action
+            android:id="@+id/action_all_items_to_form"
+            app:destination="@id/form" />
+        <action
+            android:id="@+id/action_all_items_to_home2"
+            app:destination="@id/home2" />
+        <action
+            android:id="@+id/action_all_items_to_item_detail"
+            app:destination="@id/item_detail" />
+    </fragment>
+    <fragment
+        android:id="@+id/item_detail"
+        android:name="com.example.lostandfoundapp.item_detail"
+        android:label="fragment_item_detail"
+        tools:layout="@layout/fragment_item_detail" >
+        <action
+            android:id="@+id/action_item_detail_to_all_items"
+            app:destination="@id/all_items" />
+    </fragment>
+</navigation>
