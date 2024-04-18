@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Lost and Found App</string>
+    <string name="my_map_api_key">AIzaSyABUvDAn-VJO_sAO3ZsN96aJ--NdF5CDxs</string>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>
