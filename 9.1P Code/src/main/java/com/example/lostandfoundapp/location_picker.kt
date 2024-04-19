@@ -81,7 +81,7 @@ class location_picker : Fragment(), OnMapReadyCallback {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        Places.initialize(context, "AIzaSyA5E-5iboeHICVyYQFQIBAVpcmMOR-U5vE")
+        Places.initialize(context, "****")
         Log.i("Ash", childFragmentManager.toString())
         autoComplete = childFragmentManager.findFragmentById(R.id.auto_complete_fragment) as AutocompleteSupportFragment
         autoComplete.setPlaceFields(listOf(Place.Field.ID,Place.Field.ADDRESS,Place.Field.LAT_LNG))
