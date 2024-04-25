@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav"
+    app:startDestination="@id/login">
+
+    <fragment
+        android:id="@+id/login"
+        android:name="com.example.personalizedlearningexperiences.login"
+        android:label="fragment_login"
+        tools:layout="@layout/fragment_login" >
+        <action
+            android:id="@+id/action_login_to_signup"
+            app:destination="@id/signup" />
+        <action
+            android:id="@+id/action_login_to_dashboard"
+            app:destination="@id/dashboard" />
+    </fragment>
+    <fragment
+        android:id="@+id/signup"
+        android:name="com.example.personalizedlearningexperiences.signup"
+        android:label="fragment_signup"
+        tools:layout="@layout/fragment_signup" >
+        <action
+            android:id="@+id/action_signup_to_login"
+            app:destination="@id/login" />
+        <action
+            android:id="@+id/action_signup_to_interests"
+            app:destination="@id/interests" />
+    </fragment>
+    <fragment
+        android:id="@+id/interests"
+        android:name="com.example.personalizedlearningexperiences.interests"
+        android:label="fragment_interests"
+        tools:layout="@layout/fragment_interests" >
+        <action
+            android:id="@+id/action_interests_to_signup"
+            app:destination="@id/signup" />
+        <action
+            android:id="@+id/action_interests_to_login"
+            app:destination="@id/login" />
+    </fragment>
+    <fragment
+        android:id="@+id/dashboard"
+        android:name="com.example.personalizedlearningexperiences.dashboard"
+        android:label="fragment_dashboard"
+        tools:layout="@layout/fragment_dashboard" >
+        <action
+            android:id="@+id/action_dashboard_to_login"
+            app:destination="@id/login" />
+        <action
+            android:id="@+id/action_dashboard_to_questions"
+            app:destination="@id/questions" />
+    </fragment>
+    <fragment
+        android:id="@+id/questions"
+        android:name="com.example.personalizedlearningexperiences.questions"
+        android:label="fragment_questions"
+        tools:layout="@layout/fragment_questions" >
+        <action
+            android:id="@+id/action_questions_to_dashboard"
+            app:destination="@id/dashboard" />
+        <action
+            android:id="@+id/action_questions_to_results"
+            app:destination="@id/results" />
+    </fragment>
+    <fragment
+        android:id="@+id/results"
+        android:name="com.example.personalizedlearningexperiences.results"
+        android:label="fragment_results"
+        tools:layout="@layout/fragment_results" >
+        <action
+            android:id="@+id/action_results_to_dashboard"
+            app:destination="@id/dashboard" />
+    </fragment>
+</navigation>

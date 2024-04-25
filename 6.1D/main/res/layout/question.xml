@@ -1,0 +1,85 @@
+<!-- item_layout.xml -->
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    app:cardBackgroundColor="@android:color/transparent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    >
+
+    <!-- Content visible by default -->
+    <LinearLayout
+        android:id="@+id/primaryContent"
+        android:background="@drawable/dark_gradient"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp">
+
+        <!-- Primary content here -->
+
+        <TextView
+            android:id="@+id/questionText"
+            android:layout_width="wrap_content"
+            android:text="1. Question 1"
+            android:textColor="@color/white"
+            android:layout_marginRight="140dp"
+            android:layout_height="wrap_content">
+        </TextView>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ImageView
+                android:id="@+id/imageView4"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginTop="2dp"
+                android:layout_marginStart="12dp"
+                android:elevation="5dp"
+                android:src="@drawable/arrow_right"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <Button
+                android:id="@+id/expandButton"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="4dp"
+
+                style="@style/ButtonStyle"
+                android:onClick="onExpandButtonClick"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </LinearLayout>
+
+    <!-- Additional content (initially hidden) -->
+    <LinearLayout
+        android:id="@+id/expandedContent"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:background="@drawable/dark_gradient"
+        android:visibility="gone"
+        >
+
+        <!-- Additional content here -->
+
+
+        <TextView
+            android:id="@+id/questionText1"
+            android:layout_width="wrap_content"
+            android:text="1. Question 1"
+            android:textColor="@color/white"
+            android:layout_marginRight="100dp"
+            android:layout_height="wrap_content">
+        </TextView>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>
