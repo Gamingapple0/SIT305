@@ -1,0 +1,1884 @@
+package com.example.personalizedlearningexperiences;
+
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.http.GET;
+
+public interface ApiService {
+    @GET("endpoint")
+    Call<List<Question>> getQuestions(); // Define your response model
+}
+package com.example.personalizedlearningexperiences;
+
+public interface Clickable {
+    default void onClick(String selected){}
+}
+package com.example.personalizedlearningexperiences;
+
+import androidx.room.TypeConverter;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
+
+public class Converters {
+    @TypeConverter
+    public static Calendar fromTimestamp(Long value){
+        if (value != null) {
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(value);
+            return calendar;
+        }
+        return null;
+    }
+
+    @TypeConverter
+    public static Long calendarToTimestamp(Calendar calender){
+        return calender.getTimeInMillis();
+    }
+
+    @TypeConverter
+    public static List<String> fromString(String value) {
+        if (value == null) {
+            return Collections.emptyList();
+        }
+        Type listType = new TypeToken<List<String>>() {}.getType();
+        return new Gson().fromJson(value, listType);
+    }
+
+    @TypeConverter
+    public static String fromList(List<String> list) {
+        return new Gson().toJson(list);
+    }
+}
+package com.example.personalizedlearningexperiences;
+
+import static com.example.personalizedlearningexperiences.MainActivity.currentUser;
+import static com.example.personalizedlearningexperiences.MainActivity.generatedQuestions;
+import static com.example.personalizedlearningexperiences.MainActivity.interestsList;
+
+import android.os.Bundle;
+
+import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
+
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+
+import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+import com.example.personalizedlearningexperiences.databinding.FragmentDashboardBinding;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Random;
+
+/**
+ * A simple {@link Fragment} subclass.
+ * Use the {@link dashboard#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class dashboard extends Fragment {
+
+    // TODO: Rename parameter arguments, choose names that match
+    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
+    private static final String ARG_PARAM1 = "param1";
+    private static final String ARG_PARAM2 = "param2";
+
+    // TODO: Rename and change types of parameters
+    private String mParam1;
+    private String mParam2;
+    private FragmentDashboardBinding binding;
+    public static String randomInterest;
+
+    public dashboard() {
+        // Required empty public constructor
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @param param1 Parameter 1.
+     * @param param2 Parameter 2.
+     * @return A new instance of fragment dashboard.
+     */
+    // TODO: Rename and change types and number of parameters
+    public static dashboard newInstance(String param1, String param2) {
+        dashboard fragment = new dashboard();
+        Bundle args = new Bundle();
+        args.putString(ARG_PARAM1, param1);
+        args.putString(ARG_PARAM2, param2);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            mParam1 = getArguments().getString(ARG_PARAM1);
+            mParam2 = getArguments().getString(ARG_PARAM2);
+        }
+
+
+    }
+
+    private void parseJsonResponse(JSONObject response) {
+        try {
+            JSONArray quizArray = response.getJSONArray("quiz");
+
+            for (int i = 0; i < quizArray.length(); i++) {
+                JSONObject questionObject = quizArray.getJSONObject(i);
+
+                String correctAnswer = questionObject.getString("correct_answer");
+                JSONArray optionsArray = questionObject.getJSONArray("options");
+                List<String> options = new ArrayList<>();
+                for (int j = 0; j < optionsArray.length(); j++) {
+                    options.add(optionsArray.getString(j));
+                }
+                String questionText = questionObject.getString("question");
+
+                // Create a Question object for each question
+                LocalDate localDate = LocalDate.now();
+                Date utilDate = Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTime(utilDate);
+                // Create a Question object for each question
+                Question question = new Question(correctAnswer, options, questionText, null,  randomInterest, calendar, currentUser.getPackageType());
+                generatedQuestions.add(question);
+
+                // Do something with the Question object (e.g., add it to a list)
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        binding = FragmentDashboardBinding.inflate(inflater,container,false);
+        Log.i("AshDash",generatedQuestions.toString());
+
+        binding.textView.setText(currentUser.getUsername());
+
+        binding.textView5.setVisibility(View.GONE);
+        binding.textView6.setVisibility(View.GONE);
+        binding.imageView3.setVisibility(View.GONE);
+        binding.textView7.setVisibility(View.GONE);
+        binding.openTask.setVisibility(View.GONE);
+        binding.imageView4.setVisibility(View.GONE);
+        binding.button.setVisibility(View.GONE);
+        binding.imageView2.setVisibility(View.GONE);
+
+        binding.openTask.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Navigate to the desired destination
+                Navigation.findNavController(v).navigate(R.id.action_dashboard_to_questions);
+            }
+        });
+
+        binding.generateTaskButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                generatedQuestions.clear();
+                binding.loadingProgressBar.setVisibility(View.VISIBLE);
+                binding.overlayView.setVisibility(View.VISIBLE);
+                binding.generateTaskButton.setVisibility(View.GONE);
+
+                // Generate a random index
+                Random random = new Random();
+                int randomIndex = random.nextInt(currentUser.getUserInterests().size());
+
+                // Retrieve random interest
+                randomInterest = currentUser.getUserInterests().get(randomIndex);
+
+                JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET,"http://10.0.2.2:5000/getQuiz?topic=" + randomInterest, null, new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        binding.loadingProgressBar.setVisibility(View.GONE);
+                        binding.overlayView.setVisibility(View.GONE);
+
+                        binding.textView5.setVisibility(View.VISIBLE);
+                        binding.textView6.setVisibility(View.VISIBLE);
+                        binding.imageView3.setVisibility(View.VISIBLE);
+                        binding.button.setVisibility(View.VISIBLE);
+                        binding.imageView2.setVisibility(View.VISIBLE);
+
+                        binding.textView7.setText("The questions in this task are related to the " + randomInterest + " topic");
+                        binding.textView7.setVisibility(View.VISIBLE);
+
+                        binding.openTask.setVisibility(View.VISIBLE);
+                        binding.imageView4.setVisibility(View.VISIBLE);
+
+                        binding.generateTaskButton.setVisibility(View.VISIBLE);
+
+                        parseJsonResponse(response);
+                        Log.i("AshRes",response.toString());
+                    }
+
+
+                }, new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.i("AshRes", String.valueOf(error));
+                    }
+                });
+
+                request.setRetryPolicy(new DefaultRetryPolicy(
+                        120000, // Timeout in milliseconds (2 minutes)
+                        DefaultRetryPolicy.DEFAULT_MAX_RETRIES, // Number of retries
+                        DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
+                Volley.newRequestQueue(getContext()).add(request);
+            }
+        });
+
+        return binding.getRoot();
+    }
+}
+package com.example.personalizedlearningexperiences;
+
+import static com.example.personalizedlearningexperiences.MainActivity.database;
+import static com.example.personalizedlearningexperiences.MainActivity.interestsList;
+import static com.example.personalizedlearningexperiences.MyInterestViewAdapter.chosenInterests;
+
+import android.annotation.SuppressLint;
+import android.os.AsyncTask;
+import android.os.Bundle;
+
+import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.room.Room;
+
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+
+import com.example.personalizedlearningexperiences.databinding.FragmentInterestsBinding;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * A simple {@link Fragment} subclass.
+ * Use the {@link interests#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class interests extends Fragment implements Clickable{
+
+    // TODO: Rename parameter arguments, choose names that match
+    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
+    private static final String ARG_PARAM1 = "param1";
+    private static final String ARG_PARAM2 = "param2";
+    private FragmentInterestsBinding binding;
+    private RecyclerView recyclerView;
+
+    String username = "";
+    String email = "";
+    String confirmEmail = "";
+    String password = "";
+    String confirmPassword = "";
+    String phone = "";
+    // TODO: Rename and change types of parameters
+    private String mParam1;
+    private String mParam2;
+
+    public interests() {
+        // Required empty public constructor
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @param param1 Parameter 1.
+     * @param param2 Parameter 2.
+     * @return A new instance of fragment interests.
+     */
+    // TODO: Rename and change types and number of parameters
+    public static interests newInstance(String param1, String param2) {
+        interests fragment = new interests();
+        Bundle args = new Bundle();
+        args.putString(ARG_PARAM1, param1);
+        args.putString(ARG_PARAM2, param2);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        Bundle bundle = getArguments();
+        if (bundle != null) {
+            username = bundle.getString("username");
+            email = bundle.getString("email");
+            confirmEmail = bundle.getString("confirmEmail");
+            password = bundle.getString("password");
+            confirmPassword = bundle.getString("confirmPassword");
+            phone = bundle.getString("phone");
+            // Do something with the data
+
+            Log.i("AshI", "Username: " + username);
+            Log.i("AshI", "Email: " + email);
+            Log.i("AshI", "Confirm Email: " + confirmEmail);
+            Log.i("AshI", "Password: " + password);
+            Log.i("AshI", "Confirm Password: " + confirmPassword);
+            Log.i("AshI", "Phone: " + phone);
+        }
+        binding = FragmentInterestsBinding.inflate(inflater, container, false);
+
+        recyclerView = binding.getRoot().findViewById(R.id.allInterests);
+        recyclerView.setAdapter(new MyInterestViewAdapter(interestsList, this));
+        recyclerView.setLayoutManager(new GridLayoutManager(getContext(), 2));
+
+        binding.nextButton.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("StaticFieldLeak")
+            @Override
+            public void onClick(View v) {
+                new AsyncTask<Void, Void, Void>() {
+                    @SuppressLint("StaticFieldLeak")
+                    @Override
+                    protected Void doInBackground(Void... voids) {
+                        // Perform database insertion
+                        User newUser = new User(username, password, phone, email, chosenInterests, "Basic", new ArrayList<Question>());
+                        database.userDao().insertUser(newUser);
+
+                        return null;
+                    }
+
+                    @Override
+                    protected void onPostExecute(Void aVoid) {
+                        super.onPostExecute(aVoid);
+                        // Navigate to the next screen after the database operation is complete
+                        Navigation.findNavController(v).navigate(R.id.action_interests_to_login);
+                    }
+                }.execute();
+            }
+        });
+
+        return binding.getRoot();
+    }
+
+    @Override
+    public void onClick(String selected) {
+        // Handle item click here
+        Log.i("Ash2",selected);
+    }
+}
+
+package com.example.personalizedlearningexperiences;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.lifecycle.ViewModelStoreOwner;
+import androidx.navigation.NavController;
+import androidx.navigation.fragment.NavHostFragment;
+import androidx.navigation.ui.NavigationUI;
+import androidx.room.Room;
+
+import android.os.Bundle;
+import android.util.Log;
+
+import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Objects;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
+
+public class MainActivity extends AppCompatActivity {
+    private NavController navController;
+    public static UserDatabase database;
+    private List<User> users = new ArrayList<>();
+    private UserViewModel userViewModel;
+    public static User currentUser;
+    public static int currentUserIndex;
+    public static List<Question> generatedQuestions = new ArrayList<>();
+    public static HashMap<Integer, String> resultUrls = new HashMap<>();
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        NavHostFragment navHostManager = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
+        navController = navHostManager.getNavController();
+        Log.i("MainActivity", navController.toString());
+        NavigationUI.setupActionBarWithNavController(this, navController);
+
+        database = Room.databaseBuilder(getApplicationContext(), UserDatabase.class, "userDB")
+                .fallbackToDestructiveMigration()
+                .build();
+
+        userViewModel = new ViewModelProvider((ViewModelStoreOwner) this).get(UserViewModel.class);
+        userViewModel.getUsers().observe(this, new Observer<List<User>>() {
+            @Override
+            public void onChanged(List<User> userList) {
+                users = userList;
+                Log.d("Ash", users.toString());
+            }
+        });
+
+
+
+//
+//        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET,"http://10.0.2.2:5000/getQuiz?topic=Movies", null, new Response.Listener<JSONObject>() {
+//            @Override
+//            public void onResponse(JSONObject response) {
+//                parseJsonResponse(response);
+//                Log.i("AshRes",response.toString());
+//            }
+//
+//
+//        }, new Response.ErrorListener() {
+//            @Override
+//            public void onErrorResponse(VolleyError error) {
+//                Log.i("AshRes", String.valueOf(error));
+//            }
+//        });
+//
+//        request.setRetryPolicy(new DefaultRetryPolicy(
+//                120000, // Timeout in milliseconds (2 minutes)
+//                DefaultRetryPolicy.DEFAULT_MAX_RETRIES, // Number of retries
+//                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+//
+//        Volley.newRequestQueue(this).add(request);
+
+
+    }
+
+
+
+    public static List<String> interestsList = new ArrayList<String>() {{
+        add("Anime");
+        add("Music");
+        add("Movies");
+        add("TV Shows");
+    }};
+    @Override
+    public boolean onSupportNavigateUp(){
+        return navController.navigateUp() || super.onSupportNavigateUp();
+    }
+}
+
+package com.example.personalizedlearningexperiences;
+
+import static androidx.navigation.fragment.FragmentKt.findNavController;
+
+import static com.example.personalizedlearningexperiences.MainActivity.currentUser;
+import static com.example.personalizedlearningexperiences.MainActivity.currentUserIndex;
+
+import android.os.Bundle;
+
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
+import androidx.navigation.NavDirections;
+import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
+
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+
+import com.example.personalizedlearningexperiences.databinding.FragmentLoginBinding;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * A simple {@link Fragment} subclass.
+ * Use the {@link login#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class login extends Fragment {
+
+    // TODO: Rename parameter arguments, choose names that match
+    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
+    private static final String ARG_PARAM1 = "param1";
+    private static final String ARG_PARAM2 = "param2";
+
+    // TODO: Rename and change types of parameters
+    private String mParam1;
+    private String mParam2;
+    private FragmentLoginBinding binding;
+    private UserViewModel userViewModel;
+    private List<User> users = new ArrayList<>();
+
+    public login() {
+        // Required empty public constructor
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @param param1 Parameter 1.
+     * @param param2 Parameter 2.
+     * @return A new instance of fragment login.
+     */
+    // TODO: Rename and change types and number of parameters
+    public static login newInstance(String param1, String param2) {
+        login fragment = new login();
+        Bundle args = new Bundle();
+        args.putString(ARG_PARAM1, param1);
+        args.putString(ARG_PARAM2, param2);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            mParam1 = getArguments().getString(ARG_PARAM1);
+            mParam2 = getArguments().getString(ARG_PARAM2);
+        }
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        binding = FragmentLoginBinding.inflate(inflater, container, false);
+
+        // Initialize NavController
+//        NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment);
+        userViewModel = new ViewModelProvider(requireActivity()).get(UserViewModel.class);
+
+        // Observe the list of users
+//        userViewModel.getUsers().observe(getViewLifecycleOwner(), new Observer<List<User>>() {
+//            @Override
+//            public void onChanged(List<User> userList) {
+//                // Update the list of users in the fragment
+//                users.clear();
+//                users.addAll(userList);
+//                // Perform any necessary actions with the updated user list
+//                Log.d("AshLogin", "Users: " + users);
+//            }
+//        });
+        // Set OnClickListener for signupButton
+        binding.signupButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Navigate to the desired destination
+                Navigation.findNavController(v).navigate(R.id.action_login_to_signup);
+            }
+        });
+
+        binding.loginButton.setOnClickListener(new View.OnClickListener() {
+
+
+
+            @Override
+            public void onClick(View v) {
+                List<String> usernames = new ArrayList<>();
+                LiveData<List<User>> usersLiveData = userViewModel.getUsers();
+                users = usersLiveData.getValue();
+
+                for (int index = 0; index < users.size(); index++) {
+                    User user = users.get(index);
+                    if (user.getUsername() != null) {
+                        usernames.add(user.getUsername());
+                        if (binding.editUsername.getText().toString().equals(user.getUsername())){
+                            currentUser = user;
+                        }
+                    }
+                }
+
+                Log.d("AshLogin", "Usernames: " + usernames);
+                if (usernames.contains(binding.editUsername.getText().toString())) {
+                    User user = currentUser;
+                    Log.i("AshLogin",user.getPassword());
+                    Log.i("AshLogin",binding.editPassword.getText().toString());
+                    if (user.getPassword().equals(binding.editPassword.getText().toString())) {
+                        currentUser = user;
+                        Log.i("AshLogin","Passed");
+                        Navigation.findNavController(v).navigate(R.id.action_login_to_dashboard);
+                    }
+                }
+
+
+            }
+        });
+
+        return binding.getRoot();
+    }
+
+}
+
+package com.example.personalizedlearningexperiences;
+
+import static com.example.personalizedlearningexperiences.MainActivity.interestsList;
+
+import android.annotation.SuppressLint;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.personalizedlearningexperiences.databinding.FragmentInterestsBinding;
+import com.example.personalizedlearningexperiences.databinding.InterestBinding;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class MyInterestViewAdapter extends RecyclerView.Adapter<MyInterestViewAdapter.ViewHolder> {
+
+    private Clickable clickListener;
+    private int selectedItem = -1; // Initially no item is selected
+    public static List<String> chosenInterests = new ArrayList<>();
+
+
+
+    public MyInterestViewAdapter(List<String> allinterests, Clickable listener) {
+        interestsList = allinterests;
+        this.clickListener = listener;
+
+    }
+
+    @NonNull
+    @Override
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        InterestBinding binding = InterestBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
+        return new ViewHolder(binding);
+    }
+
+    @SuppressLint("ResourceAsColor")
+    @Override
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        String selInterest = interestsList.get(position);
+        if (selInterest != null) {
+            holder.bindCard(selInterest);
+        } else {
+            holder.bindCard("selInterest");
+        }
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Pass the clicked item's position to the listener
+                selectedItem = holder.getAdapterPosition();
+                // Notify adapter that the data set has changed to refresh the RecyclerView
+                notifyDataSetChanged();
+                clickListener.onClick(selInterest);
+                Log.i("Ash3",holder.itemView.findViewById(R.id.editInterest).toString());
+                holder.itemView.setBackgroundColor(Color.GREEN);
+
+            }
+
+        });
+
+        // Change background color based on the selected item
+        if (position == selectedItem) {
+            Log.i("Ash3",holder.itemView.toString());
+            holder.itemView.setBackgroundColor(Color.GREEN); // Set selected item background color to green
+        } else {
+            holder.itemView.setBackgroundColor(Color.TRANSPARENT); // Set other item background color to transparent
+        }
+
+    }
+
+    @Override
+    public int getItemCount() {
+        return interestsList.size();
+    }
+
+    public class ViewHolder extends RecyclerView.ViewHolder {
+        private InterestBinding binding;
+        private Clickable clickListener;
+
+        public ViewHolder(@NonNull InterestBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
+        }
+
+        @SuppressLint("ResourceAsColor")
+        public void bindCard(String interest) {
+
+//            if (background instanceof GradientDrawable) {
+//                binding.editInterest.setBackgroundResource(R.drawable.ic_launcher_background);
+//            } else {
+//                binding.editInterest.setBackgroundResource(R.drawable.gradient_with_stroke);
+//            }
+
+//            binding.editInterest.setBackgroundResource(R.drawable.ic_launcher_background);
+
+            binding.editInterest.setText(interest);
+
+            binding.editInterest.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Drawable background = binding.editInterest.getBackground();
+                    Log.i("Ash4",chosenInterests.toString());
+                    if (background instanceof GradientDrawable) {
+                        if (chosenInterests.size() > 2){
+                            Toast.makeText(itemView.getContext(), "Please Select Only Upto 10", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        chosenInterests.add(interest);
+                        binding.editInterest.setBackgroundResource(R.drawable.lime_selected);
+                    } else {
+//                        chosenInterests.remove(interest);
+                        binding.editInterest.setBackgroundResource(R.drawable.gradient);
+                        chosenInterests.remove(interest);
+                    }
+                }
+            });
+        }
+    }
+}
+package com.example.personalizedlearningexperiences;
+
+import static com.example.personalizedlearningexperiences.MainActivity.currentUser;
+import static com.example.personalizedlearningexperiences.MainActivity.generatedQuestions;
+import static com.example.personalizedlearningexperiences.MainActivity.resultUrls;
+import static com.example.personalizedlearningexperiences.dashboard.randomInterest;
+
+import android.annotation.SuppressLint;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.navigation.Navigation;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+public class MyQuestionViewAdapter extends RecyclerView.Adapter<MyQuestionViewAdapter.ViewHolder> {
+
+    private List<Question> questionList;
+
+    public MyQuestionViewAdapter(List<Question> questionList) {
+        this.questionList = questionList;
+    }
+
+    @NonNull
+    @Override
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.question, parent, false);
+        return new ViewHolder(view);
+    }
+
+    private int toIndex(String letter) {
+        // Assuming correctAnswer is one of: "a", "b", "c", "d"
+        switch (letter) {
+            case "A":
+                return 0;
+            case "B":
+                return 1;
+            case "C":
+                return 2;
+            case "D":
+                return 3;
+            default:
+                return -1; // Invalid input
+        }
+    }
+
+
+
+
+
+    @Override
+    public void onBindViewHolder(@NonNull ViewHolder holder, @SuppressLint("RecyclerView") int position) {
+        Question question = questionList.get(position);
+        // Set click listener for expand button
+        holder.questionText.setText((position+1) + ". Question " + (position+1));
+        holder.questionText1.setText((position+1) + ". Question " + (position+1));
+
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        layoutParams.setMargins(0, 8, 0, 8); // Adjust margins as needed
+
+        TextView questionTextView = new TextView(holder.itemView.getContext());
+        questionTextView.setText(question.question);
+        holder.expandedContent.addView(questionTextView, layoutParams);
+
+        RadioGroup radioGroup = new RadioGroup(holder.itemView.getContext());
+        radioGroup.setLayoutParams(layoutParams);
+        for (int i = 0; i < question.options.size(); i++) {
+            RadioButton radioButton = new RadioButton(holder.itemView.getContext());
+            String stringifiedId = String.valueOf("1" + position + i);
+            radioButton.setId(Integer.parseInt(stringifiedId)); // Set a unique ID for each radio button
+            radioButton.setText(question.options.get(i));
+            radioButton.setLayoutParams(layoutParams);
+            radioGroup.addView(radioButton);
+        }
+        String stringifiedId1 = String.valueOf("1" + position);
+        radioGroup.setId(Integer.parseInt(stringifiedId1));
+
+        radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                int radioGroupId = group.getId();
+                String stringifiedId = String.valueOf(checkedId);
+                RadioButton selectedRadioButton = group.findViewById(Integer.parseInt(stringifiedId));
+                String selectedOption = selectedRadioButton.getText().toString();
+
+                // Encode question and answer parameters
+                String encodedParams = null;
+                try {
+                    encodedParams = "question=" + URLEncoder.encode(question.question, "UTF-8")
+                            + "&answer=" + URLEncoder.encode(selectedOption, "UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+
+                // Encode each option and concatenate them into a single string
+                StringBuilder optionsBuilder = new StringBuilder();
+                for (String option : question.options) {
+                    try {
+                        optionsBuilder.append(URLEncoder.encode(option, "UTF-8")).append("+or+");
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+                }
+                // Remove the trailing " or "
+                String encodedOptions = optionsBuilder.substring(0, optionsBuilder.length() - 4);
+
+                // Construct the full URL with encoded parameters
+                String baseUrl = "http://10.0.2.2:5000/getRes?";
+                String fullUrl = baseUrl + encodedParams + "&options=" + encodedOptions;
+                Log.i("AshUrl",fullUrl);
+                resultUrls.put(radioGroupId,fullUrl);
+                generatedQuestions.get(radioGroupId-10).chosenAnswer = selectedOption;
+
+//                JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET,fullUrl, null, new Response.Listener<JSONObject>() {
+//                    @Override
+//                    public void onResponse(JSONObject response) {
+////                        parseJsonResponse(response);
+//                        Log.i("AshRes",response.toString());
+//                    }
+//
+//
+//                }, new Response.ErrorListener() {
+//                    @Override
+//                    public void onErrorResponse(VolleyError error) {
+//                        Log.i("AshRes", String.valueOf(error));
+//                    }
+//                });
+//
+//                request.setRetryPolicy(new DefaultRetryPolicy(
+//                        120000, // Timeout in milliseconds (2 minutes)
+//                        DefaultRetryPolicy.DEFAULT_MAX_RETRIES, // Number of retries
+//                        DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+//
+//                Volley.newRequestQueue(group.getContext()).add(request);
+
+                // Compare the selected option with the correct answer
+                if (selectedOption.equals(question.options.get(toIndex(question.correctAnswer)))) {
+                    // Correct answer selected
+                    Log.i("AshSel","Correct");
+                    Log.i("AshSel",selectedOption);
+                    Log.i("AshSel",question.correctAnswer);
+
+                } else {
+                    // Incorrect answer selected
+                    Log.i("AshSel",selectedOption);
+                    Log.i("AshSel",question.correctAnswer);
+
+                }
+            }
+        });
+
+        holder.expandedContent.addView(radioGroup);
+
+
+
+        holder.expandButton.setOnClickListener(v -> {
+            if (holder.expandedContent.getVisibility() == View.VISIBLE) {
+                holder.expandedContent.setVisibility(View.GONE);
+                holder.expandButton.setText("Expand");
+            }
+            else {
+                holder.expandedContent.setVisibility(View.VISIBLE);
+                holder.expandButton.setVisibility(View.GONE);
+            }
+        });
+
+
+    }
+
+    @Override
+    public int getItemCount() {
+        return questionList.size();
+    }
+
+    public static class ViewHolder extends RecyclerView.ViewHolder {
+        public Button expandButton;
+        public LinearLayout expandedContent;
+        TextView questionText;
+        TextView questionText1;
+
+        public ViewHolder(@NonNull View itemView) {
+            super(itemView);
+            questionText = itemView.findViewById(R.id.questionText);
+            questionText1 = itemView.findViewById(R.id.questionText1);
+            expandButton = itemView.findViewById(R.id.expandButton);
+            expandedContent = itemView.findViewById(R.id.expandedContent);
+        }
+    }
+}
+
+package com.example.personalizedlearningexperiences;
+
+import android.os.Parcel;
+import android.os.Parcelable;
+
+import androidx.annotation.NonNull;
+
+import java.util.Calendar;
+import java.util.List;
+
+public class Question implements Parcelable {
+    String correctAnswer;
+    List<String> options;
+    String question;
+    String chosenAnswer;
+    String topic;
+    Calendar timeStamp;
+
+
+    public Question(String correctAnswer, List<String> options, String question, String chosenAnswer, String topic, Calendar timeStamp, String packageType) {
+        this.correctAnswer = correctAnswer;
+        this.options = options;
+        this.question = question;
+        this.chosenAnswer = chosenAnswer;
+        this.topic = topic;
+        this.timeStamp = timeStamp;
+    }
+
+    protected Question(Parcel in) {
+        correctAnswer = in.readString();
+        options = in.createStringArrayList();
+        question = in.readString();
+        chosenAnswer = in.readString();
+        topic = in.readString();
+        timeStamp = (Calendar) in.readSerializable();
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(correctAnswer);
+        dest.writeStringList(options);
+        dest.writeString(question);
+        dest.writeString(chosenAnswer);
+        dest.writeString(topic);
+        dest.writeSerializable(timeStamp);
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    public static final Creator<Question> CREATOR = new Creator<Question>() {
+        @Override
+        public Question createFromParcel(Parcel in) {
+            return new Question(in);
+        }
+
+        @Override
+        public Question[] newArray(int size) {
+            return new Question[size];
+        }
+    };
+}
+package com.example.personalizedlearningexperiences;
+
+import androidx.room.TypeConverter;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
+import java.util.Collections;
+import java.util.List;
+
+public class QuestionConverter {
+
+    @TypeConverter
+    public static List<Question> fromString(String value) {
+        if (value == null) {
+            return Collections.emptyList();
+        }
+        Type listType = new TypeToken<List<Question>>() {}.getType();
+        return new Gson().fromJson(value, listType);
+    }
+
+    @TypeConverter
+    public static String fromList(List<Question> list) {
+        return new Gson().toJson(list);
+    }
+}
+package com.example.personalizedlearningexperiences;
+
+public class QuestionModel {
+    private boolean isExpanded;
+
+    public boolean isExpanded() {
+        return isExpanded;
+    }
+
+    public void setExpanded(boolean expanded) {
+        isExpanded = expanded;
+    }
+}
+package com.example.personalizedlearningexperiences;
+
+import static com.example.personalizedlearningexperiences.MainActivity.currentUser;
+import static com.example.personalizedlearningexperiences.MainActivity.generatedQuestions;
+import static com.example.personalizedlearningexperiences.MainActivity.resultUrls;
+
+import android.annotation.SuppressLint;
+import android.os.AsyncTask;
+import android.os.Bundle;
+
+import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.room.Room;
+
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+
+import com.example.personalizedlearningexperiences.databinding.FragmentQuestionsBinding;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
+import static com.example.personalizedlearningexperiences.MainActivity.database;
+import static com.example.personalizedlearningexperiences.MyInterestViewAdapter.chosenInterests;
+
+
+/**
+ * A simple {@link Fragment} subclass.
+ * Use the {@link questions#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class questions extends Fragment {
+
+    // TODO: Rename parameter arguments, choose names that match
+    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
+    private static final String ARG_PARAM1 = "param1";
+    private static final String ARG_PARAM2 = "param2";
+
+    // TODO: Rename and change types of parameters
+    private String mParam1;
+    private String mParam2;
+    private FragmentQuestionsBinding binding;
+    private MyQuestionViewAdapter adapter;
+    private List<Question> questionList;
+
+    public questions() {
+        // Required empty public constructor
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @param param1 Parameter 1.
+     * @param param2 Parameter 2.
+     * @return A new instance of fragment questions.
+     */
+    // TODO: Rename and change types and number of parameters
+    public static questions newInstance(String param1, String param2) {
+        questions fragment = new questions();
+        Bundle args = new Bundle();
+        args.putString(ARG_PARAM1, param1);
+        args.putString(ARG_PARAM2, param2);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            mParam1 = getArguments().getString(ARG_PARAM1);
+            mParam2 = getArguments().getString(ARG_PARAM2);
+        }
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        binding = FragmentQuestionsBinding.inflate(inflater,container,false);
+
+        // Initialize RecyclerView and data
+        questionList = new ArrayList<>();
+
+        // Add sample questions
+//        List<String> options1 = Arrays.asList("Option 1", "Option 2", "Option 3");
+//        Question question1 = new Question("Correct answer 1", options1, "Question 1", "", "Topic 1", Calendar.getInstance(), "");
+//        questionList.add(question1);
+//
+//        Question question2 = new Question("Correct answer 2", options1, "Question 2", "", "Topic 2", Calendar.getInstance(), "");
+//        questionList.add(question2);
+//
+//        Question question3 = new Question("Correct answer 2", options1, "Question 3", "", "Topic 3", Calendar.getInstance(), "");
+//        questionList.add(question3);
+
+        Log.i("AshQues", questionList.toString());
+
+        // Set up RecyclerView
+        adapter = new MyQuestionViewAdapter(generatedQuestions);
+        binding.questionRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        binding.questionRecyclerView.setAdapter(adapter);
+
+        binding.submitButton.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("StaticFieldLeak")
+            @Override
+            public void onClick(View v) {
+                User updatedUser = currentUser;
+                updatedUser.getAllQuestions().addAll(generatedQuestions);
+
+//                updatedUser.setAllQuestions(generatedQuestions);
+
+                new AsyncTask<Void, Void, Void>() {
+                    @SuppressLint("StaticFieldLeak")
+                    @Override
+                    protected Void doInBackground(Void... voids) {
+                        // Perform database insertion
+                        database.userDao().updateUser(updatedUser);
+                        return null;
+                    }
+
+                    @Override
+                    protected void onPostExecute(Void aVoid) {
+                        super.onPostExecute(aVoid);
+                        // Navigate to the next screen after the database operation is complete
+//                        Navigation.findNavController(v).navigate(R.id.action_interests_to_login);
+                    }
+                }.execute();
+
+                Navigation.findNavController(v).navigate(R.id.action_questions_to_results);
+
+                Log.i("AshResUrls",resultUrls.values().toString());
+            }
+        });
+
+        return binding.getRoot();
+    }
+}
+package com.example.personalizedlearningexperiences;
+
+import static com.example.personalizedlearningexperiences.MainActivity.currentUser;
+import static com.example.personalizedlearningexperiences.MainActivity.generatedQuestions;
+import static com.example.personalizedlearningexperiences.MainActivity.resultUrls;
+import static com.example.personalizedlearningexperiences.dashboard.randomInterest;
+
+import android.os.Bundle;
+
+import androidx.fragment.app.Fragment;
+
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+
+import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+import com.example.personalizedlearningexperiences.databinding.FragmentResultsBinding;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * A simple {@link Fragment} subclass.
+ * Use the {@link results#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class results extends Fragment {
+
+    // TODO: Rename parameter arguments, choose names that match
+    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
+    private static final String ARG_PARAM1 = "param1";
+    private static final String ARG_PARAM2 = "param2";
+
+    // TODO: Rename and change types of parameters
+    private String mParam1;
+    private String mParam2;
+    private FragmentResultsBinding binding;
+
+    public results() {
+        // Required empty public constructor
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @param param1 Parameter 1.
+     * @param param2 Parameter 2.
+     * @return A new instance of fragment results.
+     */
+    // TODO: Rename and change types and number of parameters
+    public static results newInstance(String param1, String param2) {
+        results fragment = new results();
+        Bundle args = new Bundle();
+        args.putString(ARG_PARAM1, param1);
+        args.putString(ARG_PARAM2, param2);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            mParam1 = getArguments().getString(ARG_PARAM1);
+            mParam2 = getArguments().getString(ARG_PARAM2);
+        }
+    }
+
+    public void parseJsonResponse(JSONObject response, Integer view_id) throws JSONException {
+        switch (view_id){
+            case 1:
+                binding.questionText1.setText(generatedQuestions.get(view_id - 1).question);
+                binding.answerText1.setText(response.getString("res"));
+                return;
+            case 2:
+                binding.questionText2.setText(generatedQuestions.get(view_id - 1).question);
+                binding.answerText2.setText(response.getString("res"));
+                return;
+            case 3:
+                binding.questionText3.setText(generatedQuestions.get(view_id - 1).question);
+                binding.answerText3.setText(response.getString("res"));
+        }
+    }
+
+
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+
+        binding = FragmentResultsBinding.inflate(inflater,container,false);
+
+        for (Map.Entry<Integer, String> entry : resultUrls.entrySet()) {
+            String url = entry.getValue();
+            Integer index = entry.getKey()-10;
+
+            JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
+                @Override
+                public void onResponse(JSONObject response) {
+                    try {
+                        parseJsonResponse(response, index + 1);
+                    } catch (JSONException e) {
+                        throw new RuntimeException(e);
+                    }
+                    Log.i("AshRes", response.toString());
+                }
+                }, new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.i("AshRes", String.valueOf(error));
+                    }
+                });
+
+                request.setRetryPolicy(new DefaultRetryPolicy(
+                        120000, // Timeout in milliseconds (2 minutes)
+                        DefaultRetryPolicy.DEFAULT_MAX_RETRIES, // Number of retries
+                        DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
+                Volley.newRequestQueue(getContext()).add(request);
+        }
+
+        return binding.getRoot();
+    }
+}
+package com.example.personalizedlearningexperiences;
+
+import android.os.Bundle;
+
+import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
+
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Toast;
+
+import com.example.personalizedlearningexperiences.databinding.FragmentSignupBinding;
+
+/**
+ * A simple {@link Fragment} subclass.
+ * Use the {@link signup#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class signup extends Fragment {
+
+    // TODO: Rename parameter arguments, choose names that match
+    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
+    private static final String ARG_PARAM1 = "param1";
+    private static final String ARG_PARAM2 = "param2";
+
+    // TODO: Rename and change types of parameters
+    private String mParam1;
+    private String mParam2;
+    private FragmentSignupBinding binding;
+
+    public signup() {
+        // Required empty public constructor
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @param param1 Parameter 1.
+     * @param param2 Parameter 2.
+     * @return A new instance of fragment signup.
+     */
+    // TODO: Rename and change types and number of parameters
+    public static signup newInstance(String param1, String param2) {
+        signup fragment = new signup();
+        Bundle args = new Bundle();
+        args.putString(ARG_PARAM1, param1);
+        args.putString(ARG_PARAM2, param2);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            mParam1 = getArguments().getString(ARG_PARAM1);
+            mParam2 = getArguments().getString(ARG_PARAM2);
+        }
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+
+        binding = FragmentSignupBinding.inflate(inflater,container, false);
+
+        binding.interestButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.i("Ash","Switch");
+                if (binding.editUsername.getText().toString().isEmpty()) {
+                    // Username is empty, show toast message
+                    Toast.makeText(getActivity().getApplicationContext(), "Username is required", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (binding.editEmail.getText().toString().isEmpty()) {
+                    // Email is empty, show toast message
+                    Toast.makeText(getActivity().getApplicationContext(), "Email is required", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (binding.editConfirmEmail.getText().toString().isEmpty()) {
+                    // Confirm Email is empty, show toast message
+                    Toast.makeText(getActivity().getApplicationContext(), "Confirm Email is required", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (binding.editPassword.getText().toString().isEmpty()) {
+                    // Password is empty, show toast message
+                    Toast.makeText(getActivity().getApplicationContext(), "Password is required", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (binding.editConfirmPassword.getText().toString().isEmpty()) {
+                    // Confirm Password is empty, show toast message
+                    Toast.makeText(getActivity().getApplicationContext(), "Confirm Password is required", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (binding.editPhone.getText().toString().isEmpty()) {
+                    // Phone is empty, show toast message
+                    Toast.makeText(getActivity().getApplicationContext(), "Phone Number is required", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (!binding.editEmail.getText().toString().equals(binding.editConfirmEmail.getText().toString())) {
+                    Toast.makeText(getActivity().getApplicationContext(), "Emails must match", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (!binding.editPassword.getText().toString().equals(binding.editConfirmPassword.getText().toString())) {
+                    Toast.makeText(getActivity().getApplicationContext(), "Passwords must match", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // All fields are filled, proceed with other actions
+
+                // Create a bundle to pass data
+                Bundle bundle = new Bundle();
+                bundle.putString("username", binding.editUsername.getText().toString());
+                bundle.putString("email", binding.editEmail.getText().toString());
+                bundle.putString("confirmEmail", binding.editConfirmEmail.getText().toString());
+                bundle.putString("password", binding.editPassword.getText().toString());
+                bundle.putString("confirmPassword", binding.editConfirmPassword.getText().toString());
+                bundle.putString("phone", binding.editPhone.getText().toString());
+
+                // Navigate to the next fragment with the bundle
+                Navigation.findNavController(v).navigate(R.id.action_signup_to_interests, bundle);
+
+            }
+        });
+
+        return binding.getRoot();
+    }
+}
+package com.example.personalizedlearningexperiences;
+
+import android.os.Parcel;
+import android.os.Parcelable;
+
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
+import com.example.personalizedlearningexperiences.Question;
+
+import java.util.List;
+
+@Entity(tableName = "users")
+public class User implements Parcelable {
+
+    private String username;
+    private String password;
+    private String phone;
+    private String email;
+    private List<String> userInterests;
+    private String packageType;
+    private List<Question> allQuestions;
+
+    @PrimaryKey(autoGenerate = true)
+    private Integer id;
+
+    public User(String username, String password, String phone, String email, List<String> userInterests, String packageType, List<Question> allQuestions) {
+        this.username = username;
+        this.password = password;
+        this.phone = phone;
+        this.email = email;
+        this.userInterests = userInterests;
+        this.packageType = packageType;
+        this.allQuestions = allQuestions;
+    }
+
+    protected User(Parcel in) {
+        username = in.readString();
+        password = in.readString();
+        phone = in.readString();
+        email = in.readString();
+        userInterests = in.createStringArrayList();
+        packageType = in.readString();
+        allQuestions = in.createTypedArrayList(Question.CREATOR);
+        if (in.readByte() == 0) {
+            id = null;
+        } else {
+            id = in.readInt();
+        }
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(username);
+        dest.writeString(password);
+        dest.writeString(phone);
+        dest.writeString(email);
+        dest.writeStringList(userInterests);
+        dest.writeString(packageType);
+        dest.writeTypedList(allQuestions);
+        if (id == null) {
+            dest.writeByte((byte) 0);
+        } else {
+            dest.writeByte((byte) 1);
+            dest.writeInt(id);
+        }
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    public static final Creator<User> CREATOR = new Creator<User>() {
+        @Override
+        public User createFromParcel(Parcel in) {
+            return new User(in);
+        }
+
+        @Override
+        public User[] newArray(int size) {
+            return new User[size];
+        }
+    };
+
+    // Getters and setters
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public List<String> getUserInterests() {
+        return userInterests;
+    }
+
+    public void setUserInterests(List<String> userInterests) {
+        this.userInterests = userInterests;
+    }
+
+    public String getPackageType() {
+        return packageType;
+    }
+
+    public void setPackageType(String packageType) {
+        this.packageType = packageType;
+    }
+
+    public List<Question> getAllQuestions() {
+        return allQuestions;
+    }
+
+    public void setAllQuestions(List<Question> allQuestions) {
+        this.allQuestions = allQuestions;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+}
+package com.example.personalizedlearningexperiences;
+
+import androidx.lifecycle.LiveData;
+import androidx.room.Dao;
+import androidx.room.Delete;
+import androidx.room.Insert;
+import androidx.room.Query;
+import androidx.room.Update;
+
+import java.util.List;
+
+@Dao
+public interface UserDAO {
+
+    @Insert
+    void insertUser(User user);
+
+    @Update
+    void updateUser(User user);
+
+    @Delete
+    void deleteUser(User user);
+
+    @Query("SELECT * FROM users")
+    LiveData<List<User>> getUsers();
+}
+package com.example.personalizedlearningexperiences;
+
+import androidx.room.Database;
+import androidx.room.RoomDatabase;
+import androidx.room.TypeConverters;
+
+@Database(entities = {User.class}, version = 2)
+@TypeConverters({Converters.class, QuestionConverter.class})
+public abstract class UserDatabase extends RoomDatabase {
+    public abstract UserDAO userDao();
+}
+package com.example.personalizedlearningexperiences;
+
+import android.app.Application;
+
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
+import androidx.lifecycle.LiveData;
+import androidx.room.Room;
+
+import java.util.List;
+import java.util.concurrent.Executors;
+
+public class UserViewModel extends AndroidViewModel {
+
+    private UserDatabase database;
+    private LiveData<List<User>> users;
+
+    public UserViewModel(@NonNull Application application) {
+        super(application);
+        database = Room.databaseBuilder(application, UserDatabase.class, "userDB")
+                .fallbackToDestructiveMigration()
+                .build();
+        users = database.userDao().getUsers();
+    }
+
+    public LiveData<List<User>> getUsers() {
+        return users;
+    }
+
+    // Method to update a single user
+    public void updateUser(User updatedUser) {
+        // Perform the update operation asynchronously
+        Executors.newSingleThreadExecutor().execute(() -> {
+            database.userDao().updateUser(updatedUser); // Update the user in the database
+        });
+    }
+}
+import socket
+import argparse
+from flask import Flask, request, jsonify
+from datetime import datetime
+import os
+from gradientai import Gradient
+
+token = 'LXkZBp5a1nGCP16xM7QieYKNz2Ns0tOW'
+workspace_id = 'b5f958d9-ffd4-41bb-a492-704114e02c8e_workspace'
+
+os.environ['GRADIENT_ACCESS_TOKEN'] = token
+os.environ['GRADIENT_WORKSPACE_ID'] = workspace_id
+
+app = Flask(__name__)
+
+# Global variable for new_model_adapter
+new_model_adapter = None
+
+import re
+import json
+
+def process_quiz(quiz_text):
+    questions = []
+    pattern = re.compile(r'QUESTION: (.+?)\n(?:OPTION A: (.+?)\n)+(?:OPTION B: (.+?)\n)+(?:OPTION C: (.+?)\n)+(?:OPTION D: (.+?)\n)+ANS: (.+?)', re.DOTALL)
+    matches = pattern.findall(quiz_text)
+
+    for match in matches:
+        question = match[0].strip()
+        options = match[1].strip(), match[2].strip(), match[3].strip(), match[4].strip()
+        correct_ans = match[-1].strip()
+
+        question_data = {
+            "question": question,
+            "options": options,
+            "correct_answer": correct_ans
+        }
+        questions.append(question_data)
+
+    return  questions
+
+def process_result(result_text):
+    return result_text.split("Response:")[1]
+
+def fetchQuizFromLlama(student_topic, new_model_adapter):
+    query = (
+        f"[INST] Generate a quiz with 3 questions to test students on the provided topic. "
+        f"For each question, generate 4 options where only one of the options is correct. "
+        f"Format your response as follows:\n"
+        f"QUESTION: [Your question here]?\n"
+        f"OPTION A: [First option]\n"
+        f"OPTION B: [Second option]\n"
+        f"OPTION C: [Third option]\n"
+        f"OPTION D: [Fourth option]\n"
+        f"ANS: [Correct answer letter]\n\n"
+        f"Ensure text is properly formatted. It needs to start with a question, then the options, and finally the correct answer."
+        f"Follow this pattern for all questions."
+        f"Here is the student topic:\n{student_topic}"
+        f"[/INST]"
+    )
+    response = new_model_adapter.complete(query=query, max_generated_token_count=500).generated_output
+    return response
+
+def fetchResultFromLlama(question, answer, options, new_model_adapter):
+    query = (
+        f"[INST] Generate a very short feedback response to this answer on the provided question answered by a student and the options they were presented. Also clarify if the answer was correct or incorrect."
+        f"Here is the question:\n{question}"
+        f"Here is the answer that the student answered for the question:\n{answer}"
+        f"Here are the options that the student was presented with for the question:\n{options}"
+        f"Format your response as follows:\n"
+        f"Response: [Your response here]\n"
+        f"[/INST]"
+    )
+    response = new_model_adapter.complete(query=query, max_generated_token_count=100).generated_output
+    return response
+
+
+@app.route('/')
+def index():
+    return "Welcome to the Flask API!"
+
+@app.route('/getRes', methods=['GET'])
+def get_res():
+    global new_model_adapter
+    if new_model_adapter is None:
+        return jsonify({'error': 'Model adapter not initialized'}), 500
+    sel_question = request.args.get('question')
+    sel_answer = request.args.get('answer')
+    sel_options = request.args.get('options')
+
+    if sel_question is None or sel_answer is None:
+        return jsonify({'error': 'Missing topic parameter'}), 400
+    res = fetchResultFromLlama(sel_question, sel_answer, sel_options,new_model_adapter)
+    return jsonify({'res': process_result(res)}), 200
+
+
+@app.route('/getQuiz', methods=['GET'])
+def get_quiz():
+    global new_model_adapter
+    if new_model_adapter is None:
+        return jsonify({'error': 'Model adapter not initialized'}), 500
+    student_topic = request.args.get('topic')
+    if student_topic is None:
+        return jsonify({'error': 'Missing topic parameter'}), 400
+    quiz = fetchQuizFromLlama(student_topic, new_model_adapter)
+    return jsonify({'quiz': process_quiz(quiz)}), 200
+
+def prepareLlamaBot(name):
+    gradient = Gradient()
+    base_model = gradient.get_base_model(base_model_slug="llama2-7b-chat")
+    global new_model_adapter
+    new_model_adapter = base_model.create_model_adapter(name=name)
+
+
+
+if __name__ == '__main__':
+    default_name = f"Llama_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{socket.gethostname()}"
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--name', default=default_name, help='Specify a name')
+    args = parser.parse_args()
+
+    port_num = 5000
+    print(f"Starting Llama bot with name {args.name}...\n This may take a while.")
+    prepareLlamaBot(args.name)
+    print(f"App running on port {port_num}")
+    app.run(port=port_num)

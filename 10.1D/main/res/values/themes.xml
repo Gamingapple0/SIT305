@@ -1,0 +1,14 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Custom attributes for button colors -->
+    <attr name="buttonBackgroundColor" format="color" />
+    <attr name="buttonTextColor" format="color" />
+
+    <!-- Base application theme. -->
+    <style name="Base.Theme.PersonalizedLearningExperiences" parent="Theme.MaterialComponents.Light.DarkActionBar">
+        <!-- Customize your light theme here. -->
+        <item name="buttonBackgroundColor">@color/lime</item>
+        <item name="buttonTextColor">@color/black</item>
+    </style>
+
+    <style name="Theme.PersonalizedLearningExperiences" parent="Base.Theme.PersonalizedLearningExperiences" />
+</resources>
